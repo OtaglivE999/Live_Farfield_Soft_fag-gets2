@@ -91,13 +91,18 @@ try:
 
     frame_length = 2048
     hop_length = 512
-    max_amp = np.max(np.abs(y_proc)) + 1e-9
     y_enhanced = np.copy(y_proc)
+    TARGET_LEVEL_DB = -30
+    NOISE_FLOOR_DB = -145
     for start in range(0, len(y_proc), hop_length):
         frame = y_proc[start : start + frame_length]
         rms = np.sqrt(np.mean(frame**2))
-        rms_db = 20 * np.log10(rms / max_amp)
-        gain = 10 ** ((-30 - rms_db) / 20) if rms_db < -30 else 1.0
+        if rms <= 0:
+            continue
+        rms_db = 20 * np.log10(rms)
+        if rms_db < NOISE_FLOOR_DB:
+            continue
+        gain = 10 ** ((TARGET_LEVEL_DB - rms_db) / 20) if rms_db < TARGET_LEVEL_DB else 1.0
         y_enhanced[start : start + len(frame)] = np.clip(frame * gain, -1.0, 1.0)
     wav_output = f"enhanced_{base_name}.wav"
     sf.write(wav_output, y_enhanced, sr, subtype="PCM_32")
