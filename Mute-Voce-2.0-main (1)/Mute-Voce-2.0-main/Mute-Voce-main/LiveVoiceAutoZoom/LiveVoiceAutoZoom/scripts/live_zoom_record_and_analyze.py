@@ -4,6 +4,7 @@ import numpy as np
 import sounddevice as sd
 import soundfile as sf
 from resemblyzer import VoiceEncoder, preprocess_wav
+from vad_enhancer import detect_voiced
 import argparse
 
 def find_input_device(name_substr=None):
@@ -34,7 +35,9 @@ def find_input_device(name_substr=None):
     raise RuntimeError("No input device with recording channels available.")
 
 RECORD_SECONDS = 74 * 60  # 4440 seconds
-SAMPLE_RATE = 44100
+# Use a high sample rate and 32‑bit depth to capture very low level audio
+SAMPLE_RATE = 192000
+BIT_DEPTH = "PCM_32"
 CHANNELS = 1
 SESSION_ID = time.strftime("%Y%m%d_%H%M%S")
 RECORD_PATH = f"recordings/session_{SESSION_ID}.wav"
@@ -65,7 +68,7 @@ def record_audio(filename, duration, samplerate, channels, device_idx, block_dur
     print(f"[+] Recording {duration}s from device {device_idx}...")
     block_frames = int(samplerate * block_duration)
 
-    with sf.SoundFile(filename, mode="w", samplerate=samplerate, channels=channels, subtype="FLOAT") as f:
+    with sf.SoundFile(filename, mode="w", samplerate=samplerate, channels=channels, subtype=BIT_DEPTH) as f:
         def callback(indata, frames, time_info, status):
             if status:
                 print(f"[WARNING] Input status: {status}")
@@ -74,7 +77,7 @@ def record_audio(filename, duration, samplerate, channels, device_idx, block_dur
         with sd.InputStream(samplerate=samplerate,
                             channels=channels,
                             device=device_idx,
-                            dtype='float32',
+                            dtype='int32',
                             blocksize=block_frames,
                             callback=callback):
             sd.sleep(int(duration * 1000))
@@ -83,8 +86,12 @@ def record_audio(filename, duration, samplerate, channels, device_idx, block_dur
     return filename
 
 def enhance_audio(input_file, output_file):
-    data, sr = sf.read(input_file)
+    data, sr = sf.read(input_file, dtype='int32')
+    # Remove non-voice segments using VAD
+    voiced = detect_voiced(data, sample_rate=sr)
+
     from scipy.signal import butter, lfilter
+
     def bandpass_filter(data, lowcut, highcut, fs, order=4):
         nyq = 0.5 * fs
         low = lowcut / nyq
@@ -92,8 +99,10 @@ def enhance_audio(input_file, output_file):
         b, a = butter(order, [low, high], btype='band')
         y = lfilter(b, a, data)
         return y
-    filtered_data = bandpass_filter(data, 150, 7000, sr)
-    sf.write(output_file, filtered_data.astype('float32'), sr, subtype='FLOAT')
+
+    # Emphasise the vocal midrange
+    filtered_data = bandpass_filter(voiced.astype(np.float32), 300, 6000, sr)
+    sf.write(output_file, filtered_data.astype('int32'), sr, subtype=BIT_DEPTH)
     print(f"[+] Enhanced audio saved to {output_file}")
     return output_file
 
@@ -115,7 +124,7 @@ def fingerprint_audio(file_path):
             "session_id": SESSION_ID,
             "fingerprint_file": os.path.basename(FINGERPRINT_PATH),
             "samplerate": SAMPLE_RATE,
-            "format": "float32",
+            "format": BIT_DEPTH,
             "mean_freq": round(mean_f0, 2),
             "voice_color": round(centroid, 2)
         }
