@@ -91,12 +91,14 @@ try:
 
     frame_length = 2048
     hop_length = 512
-    rms = librosa.feature.rms(y=y_proc, frame_length=frame_length, hop_length=hop_length)[0]
-    rms_db = librosa.amplitude_to_db(rms, ref=np.max)
-    gain_mask = np.where(rms_db < -30, 10**(((-30 - rms_db) / 20)), 1.0)
-    gain_expanded = np.repeat(gain_mask, hop_length)
-    gain_expanded = gain_expanded[:len(y_proc)] if len(gain_expanded) > len(y_proc) else np.pad(gain_expanded, (0, len(y_proc) - len(gain_expanded)))
-    y_enhanced = np.clip(y_proc * gain_expanded, -1.0, 1.0)
+    max_amp = np.max(np.abs(y_proc)) + 1e-9
+    y_enhanced = np.copy(y_proc)
+    for start in range(0, len(y_proc), hop_length):
+        frame = y_proc[start : start + frame_length]
+        rms = np.sqrt(np.mean(frame**2))
+        rms_db = 20 * np.log10(rms / max_amp)
+        gain = 10 ** ((-30 - rms_db) / 20) if rms_db < -30 else 1.0
+        y_enhanced[start : start + len(frame)] = np.clip(frame * gain, -1.0, 1.0)
     wav_output = f"enhanced_{base_name}.wav"
     sf.write(wav_output, y_enhanced, sr, subtype="PCM_32")
     print(f"✅ Saved enhanced audio: {wav_output}")
