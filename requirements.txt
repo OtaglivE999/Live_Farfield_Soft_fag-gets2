@@ -1,0 +1,6 @@
+numpy
+pydub
+scipy
+webrtcvad
+librosa
+matplotlib
