@@ -3,8 +3,17 @@ import numpy as np
 import webrtcvad
 import collections
 import librosa
+xhj3a3-codex/update-livevoiceautozoom-for-audio-enhancement
 
-SAMPLE_RATE = 192000
+SAMPLE_RATE = 48000
+
+
+
+SAMPLE_RATE = 48000
+
+SAMPLE_RATE = 48000
+
+ndxhpk-codex/update-audio-script-for-voice-enhancement
 FRAME_DURATION = 30  # ms
 VAD_MODE = 2  # 0-3: higher = more aggressive
 
@@ -43,4 +52,4 @@ def enhance_audio(voiced_audio):
     filtered = bandpass(voiced_audio, 300, 6000, SAMPLE_RATE)
     normalized = filtered / (np.max(np.abs(filtered)) or 1)
     amplified = normalized * 0.9
-    return amplified.astype(np.float32)
+    return (amplified * 2147483647).astype(np.int32)
