@@ -1,9 +1,15 @@
 
+"""Voice activity detection utilities for incoming audio."""
+
 import numpy as np
 import webrtcvad
 import librosa
 
-SAMPLE_RATE = 192000
+
+SAMPLE_RATE = 48000
+
+SAMPLE_RATE = 48000
+main
 FRAME_DURATION = 30  # ms
 VAD_MODE = 2  # 0-3: higher = more aggressive
 

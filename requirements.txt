@@ -5,3 +5,10 @@ webrtcvad
 librosa
 matplotlib
 tqdm
+sounddevice
+soundfile
+moviepy
+openai-whisper
+faster-whisper
+ffmpeg-python
+pandas
