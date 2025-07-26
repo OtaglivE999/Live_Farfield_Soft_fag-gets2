@@ -1,107 +1,11 @@
-"""Voice enhancer for soft recordings.
-
-The enhancer loads 32‑bit audio, resamples to 192 kHz, and detects speech
-segments with WebRTC VAD. Each detected segment is fingerprinted using MFCCs
-and filtered with a midrange band‑pass. A framewise gain stage then boosts
-speech toward −30 dB while ignoring anything below the −145 dB noise floor.
-The final audio is saved as 32‑bit PCM.
-"""
 import os
 import sys
 import subprocess
-import hashlib
 import librosa
 import soundfile as sf
 import numpy as np
-import scipy.signal as signal
-import webrtcvad
-ndxhpk-codex/update-audio-script-for-voice-enhancement
-from tqdm import tqdm
 
-xhj3a3-codex/update-livevoiceautozoom-for-audio-enhancement
-from tqdm import tqdm
-
-      gwsjly-codex/update-audio-script-for-voice-enhancement
-      main
-
-
-def bandpass_filter(data, sr, low=300, high=3400):
-    """Apply a band-pass filter to `data`."""
-    sos = signal.butter(4, [low, high], btype="band", fs=sr, output="sos")
-    return signal.sosfilt(sos, data)
-
-
-def detect_voice_segments(y, sr, aggressiveness=3):
-    """Return voice segments ``(start, end)`` detected via WebRTC VAD."""
-    vad = webrtcvad.Vad(aggressiveness)
-    mono = librosa.to_mono(y) if y.ndim > 1 else y
-    resampled = librosa.resample(mono, orig_sr=sr, target_sr=16000)
-    max_abs = np.max(np.abs(resampled)) or 1.0
-    int16 = (resampled / max_abs * 32767).astype(np.int16)
-    frame_length = int(16000 * 0.03)
-    segments, start = [], None
-    for i in tqdm(
-        range(0, len(int16), frame_length), desc="VAD", unit="frame"
-    ):
-        frame = int16[i : i + frame_length]
-        if len(frame) < frame_length:
-            break
-        speech = vad.is_speech(frame.tobytes(), 16000)
-        t = i / 16000.0
-        if speech and start is None:
-            start = t
-        elif not speech and start is not None:
-            segments.append((start, t))
-            start = None
-    if start is not None:
-        segments.append((start, len(int16) / 16000.0))
-    return segments
-
-
-
- main
-
-
-def bandpass_filter(data, sr, low=300, high=3400):
-    """Apply a band-pass filter to `data`."""
-    sos = signal.butter(4, [low, high], btype="band", fs=sr, output="sos")
-    return signal.sosfilt(sos, data)
-
-
-def detect_voice_segments(y, sr, aggressiveness=3):
-    """Return voice segments ``(start, end)`` detected via WebRTC VAD."""
-    vad = webrtcvad.Vad(aggressiveness)
-    mono = librosa.to_mono(y) if y.ndim > 1 else y
-    resampled = librosa.resample(mono, orig_sr=sr, target_sr=16000)
-    max_abs = np.max(np.abs(resampled)) or 1.0
-    int16 = (resampled / max_abs * 32767).astype(np.int16)
-    frame_length = int(16000 * 0.03)
-    segments, start = [], None
-    for i in tqdm(
-        range(0, len(int16), frame_length), desc="VAD", unit="frame"
-    ):
-        frame = int16[i : i + frame_length]
-        if len(frame) < frame_length:
-            break
-        speech = vad.is_speech(frame.tobytes(), 16000)
-        t = i / 16000.0
-        if speech and start is None:
-            start = t
-        elif not speech and start is not None:
-            segments.append((start, t))
-            start = None
-    if start is not None:
-        segments.append((start, len(int16) / 16000.0))
-    return segments
-
-
- main
-def fingerprint_segment(segment, sr):
-    """Return a simple fingerprint hash for a voice ``segment``."""
-    mfcc = librosa.feature.mfcc(y=segment, sr=sr, n_mfcc=13)
-    return hashlib.md5(mfcc.mean(axis=1).astype(np.float32).tobytes()).hexdigest()
-
-print("🔊 Full Soft Voice Enhancer + Transcriber (VAD + Fingerprint)")
+print("🔊 Full Soft Voice Enhancer + Transcriber")
 
 input_path = input("Enter full path to your audio/video file (.wav, .mp3, .mp4): ").strip().strip('"')
 if not os.path.exists(input_path):
@@ -113,85 +17,28 @@ ext = os.path.splitext(input_path)[1].lower()
 
 try:
     print("📥 Loading audio...")
-    y, sr = sf.read(input_path, always_2d=False, dtype="float32")
+    y, sr = librosa.load(input_path, sr=None)
 except Exception as e:
     print(f"❌ Error loading file: {e}")
     sys.exit(1)
 
-# Resample to 192kHz if needed
-if sr != 192000:
-    y = librosa.resample(y, orig_sr=sr, target_sr=192000)
-    sr = 192000
-
-# Detect voice segments using VAD
-segments = detect_voice_segments(y, sr)
-if segments:
-    print(f"🗣️ Detected {len(segments)} voice segments")
-else:
-    print("ℹ️ No speech detected - continuing with full audio")
-
 try:
     print("🎚️ Enhancing soft voices...")
-
-    # Mid-range boost for detected voice segments
-    y_proc = np.array(y, dtype=np.float32)
-    for start, end in tqdm(segments, desc="Segments", unit="segment"):
-        s = int(start * sr)
-        e = int(end * sr)
-        seg = y_proc[s:e]
-        if len(seg) == 0:
-            continue
-        fp = fingerprint_segment(seg, sr)
-        print(f"   🔑 fingerprint {fp[:8]} from {start:.2f}s to {end:.2f}s")
-        y_proc[s:e] = bandpass_filter(seg, sr, 500, 5000)
-
     frame_length = 2048
     hop_length = 512
- gwsjly-codex/update-audio-script-for-voice-enhancement
-
- vhofrt-codex/update-audio-script-for-voice-enhancement
- main
-    y_enhanced = np.copy(y_proc)
-     ndxhpk-codex/update-audio-script-for-voice-enhancement
-    for start in tqdm(
-        range(0, len(y_proc), hop_length), desc="Frames", unit="frame"
-    ):
-
-    TARGET_LEVEL_DB = -30
-    NOISE_FLOOR_DB = -145
-    for start in range(0, len(y_proc), hop_length):
- main
-        frame = y_proc[start : start + frame_length]
-        rms = np.sqrt(np.mean(frame**2))
-        if rms <= 0:
-            continue
-        rms_db = 20 * np.log10(rms)
-        if rms_db < NOISE_FLOOR_DB:
-            continue
-        gain = 10 ** ((TARGET_LEVEL_DB - rms_db) / 20) if rms_db < TARGET_LEVEL_DB else 1.0
- gwsjly-codex/update-audio-script-for-voice-enhancement
-
-
-    max_amp = np.max(np.abs(y_proc)) + 1e-9
-    y_enhanced = np.copy(y_proc)
-    for start in tqdm(
-        range(0, len(y_proc), hop_length), desc="Frames", unit="frame"
-    ):
-        frame = y_proc[start : start + frame_length]
-        rms = np.sqrt(np.mean(frame**2))
-        rms_db = 20 * np.log10(rms / max_amp)
-        gain = 10 ** ((-30 - rms_db) / 20) if rms_db < -30 else 1.0
-    main
-    main
-        y_enhanced[start : start + len(frame)] = np.clip(frame * gain, -1.0, 1.0)
+    rms = librosa.feature.rms(y=y, frame_length=frame_length, hop_length=hop_length)[0]
+    rms_db = librosa.amplitude_to_db(rms, ref=np.max)
+    gain_mask = np.where(rms_db < -30, 10 ** ((-30 - rms_db) / 20), 1.0)
+    gain_expanded = np.repeat(gain_mask, hop_length)
+    gain_expanded = gain_expanded[: len(y)] if len(gain_expanded) > len(y) else np.pad(gain_expanded, (0, len(y) - len(gain_expanded)))
+    y_enhanced = np.clip(y * gain_expanded, -1.0, 1.0)
     wav_output = f"enhanced_{base_name}.wav"
-    sf.write(wav_output, y_enhanced, sr, subtype="PCM_32")
+    sf.write(wav_output, y_enhanced, sr)
     print(f"✅ Saved enhanced audio: {wav_output}")
 except Exception as e:
     print(f"❌ Enhancement error: {e}")
     sys.exit(1)
 
-# Convert back to MP4 if needed
 if ext == ".mp4":
     try:
         mp4_output = f"enhanced_{base_name}.mp4"
@@ -202,10 +49,10 @@ if ext == ".mp4":
     except Exception as e:
         print(f"⚠️ Could not rebuild MP4: {e}")
 
-# Whisper transcription
 try:
     print("📝 Transcribing using Whisper (if installed)...")
     import whisper
+
     model = whisper.load_model("base")
     result = model.transcribe(wav_output)
     with open(f"transcript_{base_name}.txt", "w", encoding="utf-8") as f:
