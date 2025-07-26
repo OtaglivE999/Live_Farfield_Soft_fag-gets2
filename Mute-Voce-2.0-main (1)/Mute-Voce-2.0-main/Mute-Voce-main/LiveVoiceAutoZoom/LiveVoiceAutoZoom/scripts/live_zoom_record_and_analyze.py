@@ -7,6 +7,7 @@ from resemblyzer import VoiceEncoder, preprocess_wav
 from vad_enhancer import detect_voiced
 import argparse
 
+
 def find_input_device(name_substr=None):
     """Return an input device index.
 
@@ -20,19 +21,28 @@ def find_input_device(name_substr=None):
 
     if name_substr:
         for idx, d in enumerate(devices):
-            if name_substr.lower() in d['name'].lower() and d['max_input_channels'] >= 1:
+            if (
+                name_substr.lower() in d["name"].lower()
+                and d["max_input_channels"] >= 1
+            ):
                 return idx
-        raise RuntimeError(f"Input device containing '{name_substr}' not found.")
+        raise RuntimeError(
+            f"Input device containing '{name_substr}' not found."
+        )
 
     default = sd.default.device[0] if sd.default.device else None
-    if default is not None and sd.query_devices(default)['max_input_channels'] > 0:
+    if (
+        default is not None
+        and sd.query_devices(default)["max_input_channels"] > 0
+    ):
         return default
 
     for idx, d in enumerate(devices):
-        if d['max_input_channels'] >= 1:
+        if d["max_input_channels"] >= 1:
             return idx
 
     raise RuntimeError("No input device with recording channels available.")
+
 
 RECORD_SECONDS = 74 * 60  # 4440 seconds
 
@@ -56,7 +66,10 @@ FINGERPRINT_PATH = f"fingerprints/voiceprint_{SESSION_ID}.npy"
 LOG_PATH = f"logs/session_{SESSION_ID}.log"
 CSV_LOG_PATH = "logs/fingerprints.csv"
 
-def record_audio(filename, duration, samplerate, channels, device_idx, block_duration=10):
+
+def record_audio(
+    filename, duration, samplerate, channels, device_idx, block_duration=10
+):
     """Record audio directly to disk to avoid large memory use.
 
     Parameters
@@ -78,25 +91,35 @@ def record_audio(filename, duration, samplerate, channels, device_idx, block_dur
     print(f"[+] Recording {duration}s from device {device_idx}...")
     block_frames = int(samplerate * block_duration)
 
-    with sf.SoundFile(filename, mode="w", samplerate=samplerate, channels=channels, subtype=BIT_DEPTH) as f:
+    with sf.SoundFile(
+        filename,
+        mode="w",
+        samplerate=samplerate,
+        channels=channels,
+        subtype=BIT_DEPTH,
+    ) as f:
+
         def callback(indata, frames, time_info, status):
             if status:
                 print(f"[WARNING] Input status: {status}")
             f.write(indata.copy())
 
-        with sd.InputStream(samplerate=samplerate,
-                            channels=channels,
-                            device=device_idx,
-                            dtype='int32',
-                            blocksize=block_frames,
-                            callback=callback):
+        with sd.InputStream(
+            samplerate=samplerate,
+            channels=channels,
+            device=device_idx,
+            dtype="int32",
+            blocksize=block_frames,
+            callback=callback,
+        ):
             sd.sleep(int(duration * 1000))
 
     print(f"[+] Saved to {filename}")
     return filename
 
+
 def enhance_audio(input_file, output_file):
-    data, sr = sf.read(input_file, dtype='int32')
+    data, sr = sf.read(input_file, dtype="int32")
     # Remove non-voice segments using VAD
     voiced = detect_voiced(data, sample_rate=sr)
 
@@ -106,15 +129,16 @@ def enhance_audio(input_file, output_file):
         nyq = 0.5 * fs
         low = lowcut / nyq
         high = highcut / nyq
-        b, a = butter(order, [low, high], btype='band')
+        b, a = butter(order, [low, high], btype="band")
         y = lfilter(b, a, data)
         return y
 
     # Emphasise the vocal midrange
     filtered_data = bandpass_filter(voiced.astype(np.float32), 300, 6000, sr)
-    sf.write(output_file, filtered_data.astype('int32'), sr, subtype=BIT_DEPTH)
+    sf.write(output_file, filtered_data.astype("int32"), sr, subtype=BIT_DEPTH)
     print(f"[+] Enhanced audio saved to {output_file}")
     return output_file
+
 
 def fingerprint_audio(file_path):
     wav = preprocess_wav(file_path)
@@ -126,17 +150,20 @@ def fingerprint_audio(file_path):
     try:
         import csv
         import librosa
+
         y, _ = librosa.load(file_path, sr=SAMPLE_RATE)
         f0 = librosa.yin(y, fmin=50, fmax=500, sr=SAMPLE_RATE)
         mean_f0 = float(np.nanmean(f0))
-        centroid = float(np.mean(librosa.feature.spectral_centroid(y=y, sr=SAMPLE_RATE)))
+        centroid = float(
+            np.mean(librosa.feature.spectral_centroid(y=y, sr=SAMPLE_RATE))
+        )
         row = {
             "session_id": SESSION_ID,
             "fingerprint_file": os.path.basename(FINGERPRINT_PATH),
             "samplerate": SAMPLE_RATE,
             "format": BIT_DEPTH,
             "mean_freq": round(mean_f0, 2),
-            "voice_color": round(centroid, 2)
+            "voice_color": round(centroid, 2),
         }
         exists = os.path.exists(CSV_LOG_PATH)
         with open(CSV_LOG_PATH, "a", newline="") as csvfile:
@@ -149,6 +176,7 @@ def fingerprint_audio(file_path):
 
     return embed
 
+
 def compare_with_existing(embed):
     match_log = []
     for f in os.listdir("fingerprints"):
@@ -156,8 +184,11 @@ def compare_with_existing(embed):
             ref = np.load(os.path.join("fingerprints", f))
             similarity = np.inner(embed, ref)
             if similarity > 0.75:
-                match_log.append(f"Match with {f}: similarity {similarity:.2f}")
+                match_log.append(
+                    f"Match with {f}: similarity {similarity:.2f}"
+                )
     return match_log
+
 
 if __name__ == "__main__":
     os.makedirs("recordings", exist_ok=True)
@@ -165,10 +196,24 @@ if __name__ == "__main__":
     os.makedirs("fingerprints", exist_ok=True)
     os.makedirs("logs", exist_ok=True)
 
-    parser = argparse.ArgumentParser(description="Record and analyze audio from a microphone")
-    parser.add_argument("--device", help="Input device index or name substring", default=None)
-    parser.add_argument("--duration", type=float, default=RECORD_SECONDS, help="Recording length in seconds")
-    parser.add_argument("--block-duration", type=float, default=10.0, help="Duration of blocks written to disk")
+    parser = argparse.ArgumentParser(
+        description="Record and analyze audio from a microphone"
+    )
+    parser.add_argument(
+        "--device", help="Input device index or name substring", default=None
+    )
+    parser.add_argument(
+        "--duration",
+        type=float,
+        default=RECORD_SECONDS,
+        help="Recording length in seconds",
+    )
+    parser.add_argument(
+        "--block-duration",
+        type=float,
+        default=10.0,
+        help="Duration of blocks written to disk",
+    )
     args = parser.parse_args()
 
     try:
@@ -180,7 +225,14 @@ if __name__ == "__main__":
         else:
             device_index = find_input_device()
 
-        record_audio(RECORD_PATH, args.duration, SAMPLE_RATE, CHANNELS, device_index, args.block_duration)
+        record_audio(
+            RECORD_PATH,
+            args.duration,
+            SAMPLE_RATE,
+            CHANNELS,
+            device_index,
+            args.block_duration,
+        )
         enhance_audio(RECORD_PATH, ENHANCE_PATH)
         embedding = fingerprint_audio(ENHANCE_PATH)
         matches = compare_with_existing(embedding)

@@ -5,6 +5,11 @@ import numpy as np
 import sounddevice as sd
 import soundfile as sf
 
+
+SAMPLE_RATE = 48000
+CHANNELS = 1
+BIT_DEPTH = 'PCM_32'
+
 SAMPLE_RATE = 48000
 
 CHANNELS = 2
@@ -12,23 +17,39 @@ CHANNELS = 2
 CHANNELS = 1
 
 BIT_DEPTH = "PCM_32"
+ main
+
 
 def find_zoom_input():
     for idx, d in enumerate(sd.query_devices()):
         if "Zoom" in d['name'] and d['max_input_channels'] >= 1:
             return idx
-    raise RuntimeError("Zoom H6 not found. Connect it and enable Audio Interface mode.")
+    raise RuntimeError(
+        "Zoom H6 not found. Connect it and enable Audio Interface mode."
+    )
+
 
 def record_audio(duration_sec=10, device_index=None):
     print(f"[Recording] {duration_sec}s from Zoom H6...")
     if device_index is None:
         device_index = find_zoom_input()
 
-    audio = sd.rec(int(duration_sec * SAMPLE_RATE), samplerate=SAMPLE_RATE,
-                   channels=CHANNELS, dtype='int32', device=device_index)
+    audio = sd.rec(
+        int(duration_sec * SAMPLE_RATE),
+        samplerate=SAMPLE_RATE,
+        channels=CHANNELS,
+        dtype="int32",
+        device=device_index,
+    )
     sd.wait()
     return audio
 
+
 def save_audio(filename, audio_data):
-    sf.write(filename, audio_data.astype('int32'), SAMPLE_RATE, subtype=BIT_DEPTH)
+    sf.write(
+        filename,
+        audio_data.astype("int32"),
+        SAMPLE_RATE,
+        subtype=BIT_DEPTH,
+    )
     print(f"[Saved] Audio to {filename}")
