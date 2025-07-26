@@ -1,7 +1,8 @@
 
+"""Voice activity detection utilities for incoming audio."""
+
 import numpy as np
 import webrtcvad
-import collections
 import librosa
 
 SAMPLE_RATE = 48000

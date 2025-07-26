@@ -1,10 +1,16 @@
 
+"""Utility helpers for recording audio via a Zoom H6 device."""
+
+import numpy as np
 import sounddevice as sd
 import soundfile as sf
-import numpy as np
 
 SAMPLE_RATE = 48000
+
+CHANNELS = 2
+
 CHANNELS = 1
+
 BIT_DEPTH = "PCM_32"
 
 def find_zoom_input():
