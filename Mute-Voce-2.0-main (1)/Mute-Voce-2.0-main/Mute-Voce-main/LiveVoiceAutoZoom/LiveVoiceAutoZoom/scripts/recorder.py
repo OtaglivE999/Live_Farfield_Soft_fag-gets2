@@ -6,7 +6,11 @@ import sounddevice as sd
 import soundfile as sf
 
 SAMPLE_RATE = 48000
+
 CHANNELS = 2
+
+CHANNELS = 1
+
 BIT_DEPTH = "PCM_32"
 
 def find_zoom_input():

@@ -5,7 +5,90 @@ import librosa
 import soundfile as sf
 import numpy as np
 
+
 print("🔊 Full Soft Voice Enhancer + Transcriber")
+
+import scipy.signal as signal
+import webrtcvad
+from tqdm import tqdm
+
+
+def bandpass_filter(data, sr, low=300, high=3400):
+    """Apply a band-pass filter to `data`."""
+    sos = signal.butter(4, [low, high], btype="band", fs=sr, output="sos")
+    return signal.sosfilt(sos, data)
+
+
+def detect_voice_segments(y, sr, aggressiveness=3):
+    """Return voice segments ``(start, end)`` detected via WebRTC VAD."""
+    vad = webrtcvad.Vad(aggressiveness)
+    mono = librosa.to_mono(y) if y.ndim > 1 else y
+    resampled = librosa.resample(mono, orig_sr=sr, target_sr=16000)
+    max_abs = np.max(np.abs(resampled)) or 1.0
+    int16 = (resampled / max_abs * 32767).astype(np.int16)
+    frame_length = int(16000 * 0.03)
+    segments, start = [], None
+    for i in tqdm(
+        range(0, len(int16), frame_length), desc="VAD", unit="frame"
+    ):
+        frame = int16[i : i + frame_length]
+        if len(frame) < frame_length:
+            break
+        speech = vad.is_speech(frame.tobytes(), 16000)
+        t = i / 16000.0
+        if speech and start is None:
+            start = t
+        elif not speech and start is not None:
+            segments.append((start, t))
+            start = None
+    if start is not None:
+        segments.append((start, len(int16) / 16000.0))
+    return segments
+
+
+
+
+
+def bandpass_filter(data, sr, low=300, high=3400):
+    """Apply a band-pass filter to `data`."""
+    sos = signal.butter(4, [low, high], btype="band", fs=sr, output="sos")
+    return signal.sosfilt(sos, data)
+
+
+def detect_voice_segments(y, sr, aggressiveness=3):
+    """Return voice segments ``(start, end)`` detected via WebRTC VAD."""
+    vad = webrtcvad.Vad(aggressiveness)
+    mono = librosa.to_mono(y) if y.ndim > 1 else y
+    resampled = librosa.resample(mono, orig_sr=sr, target_sr=16000)
+    max_abs = np.max(np.abs(resampled)) or 1.0
+    int16 = (resampled / max_abs * 32767).astype(np.int16)
+    frame_length = int(16000 * 0.03)
+    segments, start = [], None
+    for i in tqdm(
+        range(0, len(int16), frame_length), desc="VAD", unit="frame"
+    ):
+        frame = int16[i : i + frame_length]
+        if len(frame) < frame_length:
+            break
+        speech = vad.is_speech(frame.tobytes(), 16000)
+        t = i / 16000.0
+        if speech and start is None:
+            start = t
+        elif not speech and start is not None:
+            segments.append((start, t))
+            start = None
+    if start is not None:
+        segments.append((start, len(int16) / 16000.0))
+    return segments
+
+
+def fingerprint_segment(segment, sr):
+    """Return a simple fingerprint hash for a voice ``segment``."""
+    mfcc = librosa.feature.mfcc(y=segment, sr=sr, n_mfcc=13)
+    return hashlib.md5(mfcc.mean(axis=1).astype(np.float32).tobytes()).hexdigest()
+
+print("🔊 Full Soft Voice Enhancer + Transcriber (VAD + Fingerprint)")
+
 
 input_path = input("Enter full path to your audio/video file (.wav, .mp3, .mp4): ").strip().strip('"')
 if not os.path.exists(input_path):
@@ -26,12 +109,30 @@ try:
     print("🎚️ Enhancing soft voices...")
     frame_length = 2048
     hop_length = 512
+
     rms = librosa.feature.rms(y=y, frame_length=frame_length, hop_length=hop_length)[0]
     rms_db = librosa.amplitude_to_db(rms, ref=np.max)
     gain_mask = np.where(rms_db < -30, 10 ** ((-30 - rms_db) / 20), 1.0)
     gain_expanded = np.repeat(gain_mask, hop_length)
     gain_expanded = gain_expanded[: len(y)] if len(gain_expanded) > len(y) else np.pad(gain_expanded, (0, len(y) - len(gain_expanded)))
     y_enhanced = np.clip(y * gain_expanded, -1.0, 1.0)
+
+    TARGET_LEVEL_DB = -30
+    NOISE_FLOOR_DB = -145
+    y_enhanced = np.copy(y_proc)
+    for start in tqdm(
+        range(0, len(y_proc), hop_length), desc="Frames", unit="frame"
+    ):
+        frame = y_proc[start : start + frame_length]
+        rms = np.sqrt(np.mean(frame**2))
+        if rms <= 0:
+            continue
+        rms_db = 20 * np.log10(rms)
+        if rms_db < NOISE_FLOOR_DB:
+            continue
+        gain = 10 ** ((TARGET_LEVEL_DB - rms_db) / 20) if rms_db < TARGET_LEVEL_DB else 1.0
+        y_enhanced[start : start + len(frame)] = np.clip(frame * gain, -1.0, 1.0)
+
     wav_output = f"enhanced_{base_name}.wav"
     sf.write(wav_output, y_enhanced, sr)
     print(f"✅ Saved enhanced audio: {wav_output}")
