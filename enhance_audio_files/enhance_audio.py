@@ -3,15 +3,6 @@ import csv
 from datetime import datetime
 import logging
 import os
-from datetime import datetime
-
-import numpy as np
-import pydub
-import scipy.signal as signal
-import webrtcvad
-import librosa
-import matplotlib.pyplot as plt
-import librosa.display
 
 import librosa
 import librosa.display
@@ -168,26 +159,10 @@ def analyze_voice_features(audio_segment, voice_segments, input_file):
                 ]
             )
 
- n7paiv-codex/analyze-script-for-ai-voice-analysis-integration
 
- bguhir-codex/analyze-script-for-ai-voice-analysis-integration
- main
 def enhance_audio(input_file, output_path, low_freq_enhance, distance_field, analyze=False):
-    """Enhance ``input_file`` and write the result to ``output_path``.
+    """Enhance ``input_file`` and write the result to ``output_path``."""
 
-    ``output_path`` can be either a filename or a directory. If a directory is
-    provided, the enhanced file will be saved using the input filename with an
-    ``_enhanced.wav`` suffix.
-    """
-
-    input_file = input_file.strip('"')
-    output_path = output_path.strip('"')
-
-n7paiv-codex/analyze-script-for-ai-voice-analysis-integration
-
-
-def enhance_audio(input_file, output_file, low_freq_enhance, distance_field, analyze=False):
- main
     logging.info(f"Processing {input_file} for {distance_field} field enhancement")
 
     # Determine final output file name

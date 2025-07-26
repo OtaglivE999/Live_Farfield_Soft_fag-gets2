@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from scipy.signal import spectrogram
 import soundfile as sf
 import sys
+from tqdm import tqdm
+import math
 
 LF_RANGE = (20, 100)
 HF_RANGE = (20000, 24000)
@@ -47,7 +49,13 @@ def analyze_audio(filepath, label, block_duration=None):
         time_accum = []
         current_time = 0.0
 
-        for block in f.blocks(blocksize=block_frames, dtype='float32'):
+        total_blocks = math.ceil(f.frames / block_frames)
+        for block in tqdm(
+            f.blocks(blocksize=block_frames, dtype='float32'),
+            total=total_blocks,
+            desc=f"{label}",
+            unit="block",
+        ):
             if block.ndim > 1:
                 block = block.mean(axis=1)
 
@@ -122,21 +130,20 @@ def main():
 
     input_dir = args.directory
     block_duration = args.block_duration
-    for file in os.listdir(input_dir):
+    files = [f for f in os.listdir(input_dir) if f.lower().split('.')[-1] in ["wav", "mp3", "mp4"]]
+    for file in tqdm(files, desc="Files", unit="file"):
         ext = file.lower().split('.')[-1]
-        if ext in ["wav", "mp3", "mp4"]:
-            full_path = os.path.join(input_dir, file)
-            label = os.path.splitext(file)[0]
-            wav_path = full_path
-            if ext != "wav":
-                wav_path = os.path.join(input_dir, f"{label}_converted.wav")
-                convert_to_wav(full_path, wav_path)
-            print(f"Analyzing {file}...")
-            try:
-                result = analyze_audio(wav_path, file, block_duration=block_duration)
-                results.append(result)
-            except Exception as e:
-                print(f"Error analyzing {file}: {e}")
+        full_path = os.path.join(input_dir, file)
+        label = os.path.splitext(file)[0]
+        wav_path = full_path
+        if ext != "wav":
+            wav_path = os.path.join(input_dir, f"{label}_converted.wav")
+            convert_to_wav(full_path, wav_path)
+        try:
+            result = analyze_audio(wav_path, file, block_duration=block_duration)
+            results.append(result)
+        except Exception as e:
+            print(f"Error analyzing {file}: {e}")
 
     df = pd.DataFrame(results)
     out_csv = os.path.join(input_dir, OUTPUT_CSV)
