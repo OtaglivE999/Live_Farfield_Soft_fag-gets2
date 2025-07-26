@@ -2,12 +2,8 @@ This project provides a Python script to enhance audio files and optionally anal
 
 Usage on Windows:
 1. Install Python 3 and ensure `python` is on your PATH.
- n7paiv-codex/analyze-script-for-ai-voice-analysis-integration
 2. Run `pip install -r requirements.txt` to install required libraries.
-3. Double-click `enhance_audio.bat` or run it from the command prompt.
-
- Double-click `enhance_audio.bat` or run it from the command prompt.
- main
+3. Double-click `enhance_audio.bat` or run it from the command prompt. When prompted:
    - Provide the full path to the input audio file **without quotes**.
    - Provide either a full output file path **or a directory** where the enhanced file will be saved. Quotes are optional.
    - Choose the low-frequency enhancement value (e.g. 875).
