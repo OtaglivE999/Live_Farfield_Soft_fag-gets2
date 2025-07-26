@@ -1,2 +1,10 @@
 __pycache__/
 *.pyc
+
+# Ignore output files
+*.wav
+audio_enhancement.log
+audio_enhancement_log.csv
+voice_analysis.csv
+voice_segments.csv
+spectrograms/

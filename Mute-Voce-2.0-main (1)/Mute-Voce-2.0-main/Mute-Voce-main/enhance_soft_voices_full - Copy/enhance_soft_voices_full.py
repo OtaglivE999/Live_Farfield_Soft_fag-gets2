@@ -15,14 +15,7 @@ import soundfile as sf
 import numpy as np
 import scipy.signal as signal
 import webrtcvad
-ndxhpk-codex/update-audio-script-for-voice-enhancement
 from tqdm import tqdm
-
-xhj3a3-codex/update-livevoiceautozoom-for-audio-enhancement
-from tqdm import tqdm
-
-      gwsjly-codex/update-audio-script-for-voice-enhancement
-      main
 
 
 def bandpass_filter(data, sr, low=300, high=3400):
@@ -59,7 +52,6 @@ def detect_voice_segments(y, sr, aggressiveness=3):
 
 
 
- main
 
 
 def bandpass_filter(data, sr, low=300, high=3400):
@@ -95,7 +87,6 @@ def detect_voice_segments(y, sr, aggressiveness=3):
     return segments
 
 
- main
 def fingerprint_segment(segment, sr):
     """Return a simple fingerprint hash for a voice ``segment``."""
     mfcc = librosa.feature.mfcc(y=segment, sr=sr, n_mfcc=13)
@@ -147,20 +138,12 @@ try:
 
     frame_length = 2048
     hop_length = 512
- gwsjly-codex/update-audio-script-for-voice-enhancement
-
- vhofrt-codex/update-audio-script-for-voice-enhancement
- main
+    TARGET_LEVEL_DB = -30
+    NOISE_FLOOR_DB = -145
     y_enhanced = np.copy(y_proc)
-     ndxhpk-codex/update-audio-script-for-voice-enhancement
     for start in tqdm(
         range(0, len(y_proc), hop_length), desc="Frames", unit="frame"
     ):
-
-    TARGET_LEVEL_DB = -30
-    NOISE_FLOOR_DB = -145
-    for start in range(0, len(y_proc), hop_length):
- main
         frame = y_proc[start : start + frame_length]
         rms = np.sqrt(np.mean(frame**2))
         if rms <= 0:
@@ -169,20 +152,6 @@ try:
         if rms_db < NOISE_FLOOR_DB:
             continue
         gain = 10 ** ((TARGET_LEVEL_DB - rms_db) / 20) if rms_db < TARGET_LEVEL_DB else 1.0
- gwsjly-codex/update-audio-script-for-voice-enhancement
-
-
-    max_amp = np.max(np.abs(y_proc)) + 1e-9
-    y_enhanced = np.copy(y_proc)
-    for start in tqdm(
-        range(0, len(y_proc), hop_length), desc="Frames", unit="frame"
-    ):
-        frame = y_proc[start : start + frame_length]
-        rms = np.sqrt(np.mean(frame**2))
-        rms_db = 20 * np.log10(rms / max_amp)
-        gain = 10 ** ((-30 - rms_db) / 20) if rms_db < -30 else 1.0
-    main
-    main
         y_enhanced[start : start + len(frame)] = np.clip(frame * gain, -1.0, 1.0)
     wav_output = f"enhanced_{base_name}.wav"
     sf.write(wav_output, y_enhanced, sr, subtype="PCM_32")
