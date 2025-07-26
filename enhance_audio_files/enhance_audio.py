@@ -14,30 +14,41 @@ import scipy.signal as signal
 import webrtcvad
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, filename="audio_enhancement.log", format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    filename="audio_enhancement.log",
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+
 
 # Define the frequency filters for different fields
 def apply_low_pass_filter(audio_data, fs, cutoff):
     nyquist = 0.5 * fs
     normal_cutoff = cutoff / nyquist
-    b, a = signal.butter(5, normal_cutoff, btype='low', analog=False)
+    b, a = signal.butter(5, normal_cutoff, btype="low", analog=False)
     return signal.lfilter(b, a, audio_data)
+
 
 def apply_band_pass_filter(audio_data, fs, low_cutoff, high_cutoff):
     nyquist = 0.5 * fs
     low_normal_cutoff = low_cutoff / nyquist
     high_normal_cutoff = high_cutoff / nyquist
-    b, a = signal.butter(5, [low_normal_cutoff, high_normal_cutoff], btype='band', analog=False)
+    b, a = signal.butter(
+        5, [low_normal_cutoff, high_normal_cutoff], btype="band", analog=False
+    )
     return signal.lfilter(b, a, audio_data)
+
 
 def apply_high_pass_filter(audio_data, fs, cutoff):
     nyquist = 0.5 * fs
     normal_cutoff = cutoff / nyquist
-    b, a = signal.butter(5, normal_cutoff, btype='high', analog=False)
+    b, a = signal.butter(5, normal_cutoff, btype="high", analog=False)
     return signal.lfilter(b, a, audio_data)
 
 
-def detect_voice_segments(audio_segment, frame_duration_ms=30, aggressiveness=3):
+def detect_voice_segments(
+    audio_segment, frame_duration_ms=30, aggressiveness=3
+):
     """Detect voice segments using WebRTC VAD.
 
     Parameters
@@ -62,8 +73,7 @@ def detect_voice_segments(audio_segment, frame_duration_ms=30, aggressiveness=3)
     segments = []
     start = None
     for i in tqdm(
-        range(0, len(raw_audio), bytes_per_frame),
-        desc="VAD", unit="frame"
+        range(0, len(raw_audio), bytes_per_frame), desc="VAD", unit="frame"
     ):
         frame = raw_audio[i:i + bytes_per_frame]
         if len(frame) < bytes_per_frame:
@@ -115,7 +125,7 @@ def analyze_voice_features(audio_segment, voice_segments, input_file):
         for idx, (start, end) in enumerate(
             tqdm(voice_segments, desc="Segments", unit="segment")
         ):
-            seg = audio_segment[start * 1000 : end * 1000]
+            seg = audio_segment[start * 1000:end * 1000]
             samples = np.array(seg.get_array_of_samples()).astype(np.float32)
             if seg.channels > 1:
                 samples = samples.reshape(-1, seg.channels).mean(axis=1)
@@ -138,7 +148,9 @@ def analyze_voice_features(audio_segment, voice_segments, input_file):
             possible_height = "tall" if f0_median < 120 else "average"
             timestamp = datetime.now().isoformat(timespec="seconds")
 
-            S = librosa.amplitude_to_db(np.abs(librosa.stft(samples)), ref=np.max)
+            S = librosa.amplitude_to_db(
+                np.abs(librosa.stft(samples)), ref=np.max
+            )
             spec_path = os.path.join(
                 "spectrograms", f"{os.path.basename(input_file)}_{idx}.png"
             )
@@ -166,10 +178,14 @@ def analyze_voice_features(audio_segment, voice_segments, input_file):
             )
 
 
-def enhance_audio(input_file, output_path, low_freq_enhance, distance_field, analyze=False):
+def enhance_audio(
+    input_file, output_path, low_freq_enhance, distance_field, analyze=False
+):
     """Enhance ``input_file`` and write the result to ``output_path``."""
 
-    logging.info(f"Processing {input_file} for {distance_field} field enhancement")
+    logging.info(
+        f"Processing {input_file} for {distance_field} field enhancement"
+    )
 
     # Determine final output file name
     output_file = output_path
@@ -188,7 +204,10 @@ def enhance_audio(input_file, output_path, low_freq_enhance, distance_field, ana
         logging.info("Voice segments detected: %s", voice_segments)
         with open("voice_segments.csv", mode="a", newline="") as seg_file:
             seg_writer = csv.writer(seg_file)
-            if not os.path.exists("voice_segments.csv") or os.stat("voice_segments.csv").st_size == 0:
+            if (
+                not os.path.exists("voice_segments.csv")
+                or os.stat("voice_segments.csv").st_size == 0
+            ):
                 seg_writer.writerow(["file", "start", "end"])
             for start, end in tqdm(
                 voice_segments, desc="Logging", unit="segment"
@@ -199,63 +218,100 @@ def enhance_audio(input_file, output_path, low_freq_enhance, distance_field, ana
     audio_data = np.array(audio.get_array_of_samples())
 
     # Apply the filter based on the field type
-    if distance_field == 'far':
-        # Apply low-pass filter (far-field voices are typically in lower frequencies)
+    if distance_field == "far":
+        # Low-pass filter for far-field voices
         logging.info("Applying low-pass filter for far-field voices.")
-        enhanced_audio = apply_low_pass_filter(audio_data, audio.frame_rate, 500)  # Low-pass cutoff at 500 Hz
-    elif distance_field == 'mid':
-        # Apply band-pass filter (mid-field voices have a range of frequencies)
+        enhanced_audio = apply_low_pass_filter(
+            audio_data, audio.frame_rate, 500
+        )  # Low-pass cutoff at 500 Hz
+    elif distance_field == "mid":
+        # Band-pass filter for mid-field voices
         logging.info("Applying band-pass filter for mid-field voices.")
-        enhanced_audio = apply_band_pass_filter(audio_data, audio.frame_rate, 500, 5000)  # Band-pass filter between 500Hz and 5000Hz
-    elif distance_field == 'close':
-        # Apply high-pass filter (close-field voices are typically high-frequency)
+        enhanced_audio = apply_band_pass_filter(
+            audio_data, audio.frame_rate, 500, 5000
+        )  # Band-pass filter between 500Hz and 5000Hz
+    elif distance_field == "close":
+        # High-pass filter for close voices
         logging.info("Applying high-pass filter for close-field voices.")
-        enhanced_audio = apply_high_pass_filter(audio_data, audio.frame_rate, 5000)  # High-pass cutoff at 5000 Hz
+        enhanced_audio = apply_high_pass_filter(
+            audio_data, audio.frame_rate, 5000
+        )  # High-pass cutoff at 5000 Hz
     else:
-        raise ValueError("Invalid distance field specified: must be 'far', 'mid', or 'close'.")
+        raise ValueError(
+            "Invalid distance field: must be 'far', 'mid', or 'close'."
+        )
 
     # Enhance low-frequency transmission
     logging.info("Enhancing low-frequency transmission.")
-    enhanced_audio = apply_low_pass_filter(enhanced_audio, audio.frame_rate, low_freq_enhance)
+    enhanced_audio = apply_low_pass_filter(
+        enhanced_audio, audio.frame_rate, low_freq_enhance
+    )
 
     # Save the enhanced audio to the output file
     enhanced_audio_segment = pydub.AudioSegment(
         enhanced_audio.tobytes(),
         frame_rate=audio.frame_rate,
         sample_width=audio.sample_width,
-        channels=audio.channels
+        channels=audio.channels,
     )
     enhanced_audio_segment.export(output_file, format="wav")
     logging.info(f"Enhanced audio saved to {output_file}")
 
     # Log the changes in CSV
-    log_header = ["file", "distance_field", "low_freq_enhance", "output", "timestamp"]
-    file_exists = os.path.isfile('audio_enhancement_log.csv')
-    with open('audio_enhancement_log.csv', mode='a', newline='') as file:
+    log_header = [
+        "file",
+        "distance_field",
+        "low_freq_enhance",
+        "output",
+        "timestamp",
+    ]
+    file_exists = os.path.isfile("audio_enhancement_log.csv")
+    with open("audio_enhancement_log.csv", mode="a", newline="") as file:
         writer = csv.writer(file)
         if not file_exists:
             writer.writerow(log_header)
-        writer.writerow([
-            input_file,
-            distance_field,
-            low_freq_enhance,
-            output_file,
-            datetime.now().isoformat(timespec="seconds"),
-        ])
-        logging.info(f"Changes logged to audio_enhancement_log.csv")
+        writer.writerow(
+            [
+                input_file,
+                distance_field,
+                low_freq_enhance,
+                output_file,
+                datetime.now().isoformat(timespec="seconds"),
+            ]
+        )
+        logging.info("Changes logged to audio_enhancement_log.csv")
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Enhance audio for far, mid, or close-field voices.")
+    parser = argparse.ArgumentParser(
+        description="Enhance audio for far, mid, or close-field voices."
+    )
     parser.add_argument("input", type=str, help="Input audio file path.")
     parser.add_argument("output", type=str, help="Output audio file path.")
-    parser.add_argument("low_freq_enhance", type=int, help="Low-frequency enhancement (Hz).")
-    parser.add_argument("distance_field", type=str, choices=['far', 'mid', 'close'], help="Distance field to enhance: 'far', 'mid', or 'close'.")
+    parser.add_argument(
+        "low_freq_enhance", type=int, help="Low-frequency enhancement (Hz)."
+    )
+    parser.add_argument(
+        "distance_field",
+        type=str,
+        choices=["far", "mid", "close"],
+        help="Distance field to enhance: 'far', 'mid', or 'close'.",
+    )
     parser.add_argument(
         "--analyze",
         action="store_true",
-        help="Analyze voice segments with simple AI heuristics and log results.",
+        help=(
+            "Analyze voice segments with simple AI heuristics "
+            "and log results."
+        ),
     )
 
     args = parser.parse_args()
 
-    enhance_audio(args.input, args.output, args.low_freq_enhance, args.distance_field, analyze=args.analyze)
+    enhance_audio(
+        args.input,
+        args.output,
+        args.low_freq_enhance,
+        args.distance_field,
+        analyze=args.analyze,
+    )

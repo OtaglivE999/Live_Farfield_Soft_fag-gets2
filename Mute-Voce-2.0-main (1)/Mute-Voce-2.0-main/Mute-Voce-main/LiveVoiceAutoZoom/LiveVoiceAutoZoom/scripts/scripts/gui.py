@@ -1,15 +1,18 @@
-
 import tkinter as tk
-from tkinter import messagebox
 import numpy as np
 import threading
 import time
 import sounddevice as sd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from recorder import record_audio, save_audio, find_zoom_input, SAMPLE_RATE
+from recorder import save_audio, find_zoom_input, SAMPLE_RATE
 from vad_enhancer import detect_voiced, enhance_audio
-from speaker_recognition import extract_embedding, load_known_speakers, recognize_speaker
+from speaker_recognition import (
+    extract_embedding,
+    load_known_speakers,
+    recognize_speaker,
+)
+
 
 class VoiceRecorderGUI:
     def __init__(self, root):
@@ -21,7 +24,9 @@ class VoiceRecorderGUI:
         self.canvas = FigureCanvasTkAgg(self.plot_fig, master=self.root)
         self.canvas.get_tk_widget().pack(pady=20)
 
-        self.speaker_label = tk.Label(root, text="Detected Speaker: ---", font=("Arial", 14))
+        self.speaker_label = tk.Label(
+            root, text="Detected Speaker: ---", font=("Arial", 14)
+        )
         self.speaker_label.pack()
 
         self.log = tk.Text(root, height=10, width=100)
@@ -31,10 +36,14 @@ class VoiceRecorderGUI:
         self.stream = None
         self.device_index = find_zoom_input()
 
-        self.start_button = tk.Button(root, text="Start Recording", command=self.start_recording)
+        self.start_button = tk.Button(
+            root, text="Start Recording", command=self.start_recording
+        )
         self.start_button.pack(side=tk.LEFT, padx=20)
 
-        self.stop_button = tk.Button(root, text="Stop", command=self.stop_recording)
+        self.stop_button = tk.Button(
+            root, text="Stop", command=self.stop_recording
+        )
         self.stop_button.pack(side=tk.RIGHT, padx=20)
 
     def start_recording(self):
@@ -60,8 +69,13 @@ class VoiceRecorderGUI:
             self.ax.set_title("Live Waveform")
             self.canvas.draw()
 
-        with sd.InputStream(device=self.device_index, channels=1,
-                            samplerate=SAMPLE_RATE, dtype='int32', callback=callback):
+        with sd.InputStream(
+            device=self.device_index,
+            channels=1,
+            samplerate=SAMPLE_RATE,
+            dtype="int32",
+            callback=callback,
+        ):
             while self.recording:
                 time.sleep(0.1)
 
@@ -76,10 +90,13 @@ class VoiceRecorderGUI:
         match = recognize_speaker(emb, known_speakers)
         if match:
             self.speaker_label.config(text=f"Detected Speaker: {match}")
-            self.log.insert(tk.END, f"[MATCH] Speaker identified as: {match}\n")
+            self.log.insert(
+                tk.END, f"[MATCH] Speaker identified as: {match}\n"
+            )
         else:
             self.speaker_label.config(text="Detected Speaker: Unknown")
             self.log.insert(tk.END, "[UNKNOWN] Speaker not recognized\n")
+
 
 if __name__ == "__main__":
     root = tk.Tk()

@@ -1,17 +1,23 @@
-
 import sys
+
 
 def run_gui():
     from gui import VoiceRecorderGUI
     import tkinter as tk
+
     root = tk.Tk()
-    app = VoiceRecorderGUI(root)
+    VoiceRecorderGUI(root)
     root.mainloop()
+
 
 def run_cli():
     from recorder import record_audio, save_audio
     from vad_enhancer import detect_voiced, enhance_audio
-    from speaker_recognition import extract_embedding, load_known_speakers, recognize_speaker
+    from speaker_recognition import (
+        extract_embedding,
+        load_known_speakers,
+        recognize_speaker,
+    )
 
     print("[CLI MODE] Recording 10 seconds...")
     audio = record_audio(10)
@@ -29,6 +35,7 @@ def run_cli():
         print(f"[MATCH] Speaker identified as: {match}")
     else:
         print("[UNKNOWN] Speaker not recognized.")
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--cli":

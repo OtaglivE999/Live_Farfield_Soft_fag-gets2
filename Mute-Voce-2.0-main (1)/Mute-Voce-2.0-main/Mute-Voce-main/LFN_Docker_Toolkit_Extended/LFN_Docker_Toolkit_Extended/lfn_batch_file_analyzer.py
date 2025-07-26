@@ -5,7 +5,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.signal import spectrogram
 import soundfile as sf
-import sys
 from tqdm import tqdm
 import math
 
@@ -17,9 +16,23 @@ SPECTROGRAM_FOLDER = "spectrograms"
 os.makedirs(SPECTROGRAM_FOLDER, exist_ok=True)
 results = []
 
+
 def convert_to_wav(input_path, output_path):
-    command = ["ffmpeg", "-y", "-i", input_path, "-ar", "44100", "-ac", "1", output_path]
-    subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    command = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        input_path,
+        "-ar",
+        "44100",
+        "-ac",
+        "1",
+        output_path,
+    ]
+    subprocess.run(
+        command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
+
 
 def analyze_audio(filepath, label, block_duration=None):
     """Analyze a single audio file.
@@ -51,7 +64,7 @@ def analyze_audio(filepath, label, block_duration=None):
 
         total_blocks = math.ceil(f.frames / block_frames)
         for block in tqdm(
-            f.blocks(blocksize=block_frames, dtype='float32'),
+            f.blocks(blocksize=block_frames, dtype="float32"),
             total=total_blocks,
             desc=f"{label}",
             unit="block",
@@ -59,7 +72,9 @@ def analyze_audio(filepath, label, block_duration=None):
             if block.ndim > 1:
                 block = block.mean(axis=1)
 
-            freqs, times, Sxx = spectrogram(block, fs=sr, nperseg=4096, noverlap=2048)
+            freqs, times, Sxx = spectrogram(
+                block, fs=sr, nperseg=4096, noverlap=2048
+            )
             Sxx_db = 10 * np.log10(Sxx + 1e-10)
 
             # LFN peak for this block
@@ -69,7 +84,9 @@ def analyze_audio(filepath, label, block_duration=None):
             if lfn_spec.size:
                 idx = np.argmax(lfn_spec)
                 lfn_db_block = lfn_spec.flat[idx]
-                lfn_peak_block = lfn_freqs[np.unravel_index(idx, lfn_spec.shape)[0]]
+                lfn_peak_block = lfn_freqs[
+                    np.unravel_index(idx, lfn_spec.shape)[0]
+                ]
                 if lfn_db_block > max_lfn_db:
                     max_lfn_db = lfn_db_block
                     max_lfn_peak = lfn_peak_block
@@ -81,7 +98,9 @@ def analyze_audio(filepath, label, block_duration=None):
             if hf_freqs.size:
                 idx = np.argmax(hf_spec)
                 hf_db_block = hf_spec.flat[idx]
-                hf_peak_block = hf_freqs[np.unravel_index(idx, hf_spec.shape)[0]]
+                hf_peak_block = hf_freqs[
+                    np.unravel_index(idx, hf_spec.shape)[0]
+                ]
                 if hf_db_block > max_hf_db:
                     max_hf_db = hf_db_block
                     max_hf_peak = hf_peak_block
@@ -100,12 +119,14 @@ def analyze_audio(filepath, label, block_duration=None):
 
     # Plot accumulated spectrogram
     plt.figure(figsize=(12, 6))
-    plt.pcolormesh(time_accum, spec_freqs, spec_accum, shading='gouraud')
+    plt.pcolormesh(time_accum, spec_freqs, spec_accum, shading="gouraud")
     plt.title(f"Spectrogram: {label}")
     plt.ylabel("Frequency (Hz)")
     plt.xlabel("Time (s)")
     plt.colorbar(label="Intensity (dB)")
-    out_img = os.path.join(SPECTROGRAM_FOLDER, f"{os.path.splitext(label)[0]}.png")
+    out_img = os.path.join(
+        SPECTROGRAM_FOLDER, f"{os.path.splitext(label)[0]}.png"
+    )
     plt.tight_layout()
     plt.savefig(out_img)
     plt.close()
@@ -116,23 +137,34 @@ def analyze_audio(filepath, label, block_duration=None):
         "LFN dB": round(float(max_lfn_db), 2),
         "Ultrasonic Peak (Hz)": round(float(max_hf_peak), 2),
         "Ultrasonic dB": round(float(max_hf_db), 2),
-        "Spectrogram": out_img
+        "Spectrogram": out_img,
     }
+
 
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description="Batch analyze audio files for LFN and ultrasonic peaks")
+    parser = argparse.ArgumentParser(
+        description="Batch analyze audio files for LFN and ultrasonic peaks"
+    )
     parser.add_argument("directory", help="Path to the audio directory")
-    parser.add_argument("--block-duration", type=float, default=None,
-                        help="Chunk size in seconds for processing large files")
+    parser.add_argument(
+        "--block-duration",
+        type=float,
+        default=None,
+        help="Chunk size in seconds for processing large files",
+    )
     args = parser.parse_args()
 
     input_dir = args.directory
     block_duration = args.block_duration
-    files = [f for f in os.listdir(input_dir) if f.lower().split('.')[-1] in ["wav", "mp3", "mp4"]]
+    files = [
+        f
+        for f in os.listdir(input_dir)
+        if f.lower().split(".")[-1] in ["wav", "mp3", "mp4"]
+    ]
     for file in tqdm(files, desc="Files", unit="file"):
-        ext = file.lower().split('.')[-1]
+        ext = file.lower().split(".")[-1]
         full_path = os.path.join(input_dir, file)
         label = os.path.splitext(file)[0]
         wav_path = full_path
@@ -140,7 +172,9 @@ def main():
             wav_path = os.path.join(input_dir, f"{label}_converted.wav")
             convert_to_wav(full_path, wav_path)
         try:
-            result = analyze_audio(wav_path, file, block_duration=block_duration)
+            result = analyze_audio(
+                wav_path, file, block_duration=block_duration
+            )
             results.append(result)
         except Exception as e:
             print(f"Error analyzing {file}: {e}")
@@ -148,7 +182,11 @@ def main():
     df = pd.DataFrame(results)
     out_csv = os.path.join(input_dir, OUTPUT_CSV)
     df.to_csv(out_csv, index=False)
-    print(f"\n✅ Analysis complete. Results saved to {out_csv} and {SPECTROGRAM_FOLDER}/")
+    print(
+        "\n✅ Analysis complete. Results saved to "
+        f"{out_csv} and {SPECTROGRAM_FOLDER}/"
+    )
+
 
 if __name__ == "__main__":
     main()
