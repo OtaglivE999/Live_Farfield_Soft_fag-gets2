@@ -4,7 +4,11 @@ import webrtcvad
 import collections
 import librosa
 
+
 SAMPLE_RATE = 48000
+
+SAMPLE_RATE = 48000
+
 FRAME_DURATION = 30  # ms
 VAD_MODE = 2  # 0-3: higher = more aggressive
 
