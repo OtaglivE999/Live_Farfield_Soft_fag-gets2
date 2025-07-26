@@ -15,6 +15,9 @@ import soundfile as sf
 import numpy as np
 import scipy.signal as signal
 import webrtcvad
+ndxhpk-codex/update-audio-script-for-voice-enhancement
+from tqdm import tqdm
+
 xhj3a3-codex/update-livevoiceautozoom-for-audio-enhancement
 from tqdm import tqdm
 
@@ -56,6 +59,7 @@ def detect_voice_segments(y, sr, aggressiveness=3):
 
 
 
+ main
 
 
 def bandpass_filter(data, sr, low=300, high=3400):
@@ -73,7 +77,9 @@ def detect_voice_segments(y, sr, aggressiveness=3):
     int16 = (resampled / max_abs * 32767).astype(np.int16)
     frame_length = int(16000 * 0.03)
     segments, start = [], None
-    for i in range(0, len(int16), frame_length):
+    for i in tqdm(
+        range(0, len(int16), frame_length), desc="VAD", unit="frame"
+    ):
         frame = int16[i : i + frame_length]
         if len(frame) < frame_length:
             break
@@ -146,9 +152,15 @@ try:
  vhofrt-codex/update-audio-script-for-voice-enhancement
  main
     y_enhanced = np.copy(y_proc)
+     ndxhpk-codex/update-audio-script-for-voice-enhancement
+    for start in tqdm(
+        range(0, len(y_proc), hop_length), desc="Frames", unit="frame"
+    ):
+
     TARGET_LEVEL_DB = -30
     NOISE_FLOOR_DB = -145
     for start in range(0, len(y_proc), hop_length):
+ main
         frame = y_proc[start : start + frame_length]
         rms = np.sqrt(np.mean(frame**2))
         if rms <= 0:
