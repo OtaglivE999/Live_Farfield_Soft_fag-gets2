@@ -3,15 +3,7 @@ import csv
 from datetime import datetime
 import logging
 import os
-from datetime import datetime
-
-import numpy as np
-import pydub
-import scipy.signal as signal
-import webrtcvad
-import librosa
-import matplotlib.pyplot as plt
-import librosa.display
+from tqdm import tqdm
 
 import librosa
 import librosa.display
@@ -69,7 +61,10 @@ def detect_voice_segments(audio_segment, frame_duration_ms=30, aggressiveness=3)
     raw_audio = mono.raw_data
     segments = []
     start = None
-    for i in range(0, len(raw_audio), bytes_per_frame):
+    for i in tqdm(
+        range(0, len(raw_audio), bytes_per_frame),
+        desc="VAD", unit="frame"
+    ):
         frame = raw_audio[i:i + bytes_per_frame]
         if len(frame) < bytes_per_frame:
             break
@@ -117,7 +112,9 @@ def analyze_voice_features(audio_segment, voice_segments, input_file):
         if not file_exists:
             writer.writerow(header)
 
-        for idx, (start, end) in enumerate(voice_segments):
+        for idx, (start, end) in enumerate(
+            tqdm(voice_segments, desc="Segments", unit="segment")
+        ):
             seg = audio_segment[start * 1000 : end * 1000]
             samples = np.array(seg.get_array_of_samples()).astype(np.float32)
             if seg.channels > 1:
@@ -168,26 +165,10 @@ def analyze_voice_features(audio_segment, voice_segments, input_file):
                 ]
             )
 
- n7paiv-codex/analyze-script-for-ai-voice-analysis-integration
 
- bguhir-codex/analyze-script-for-ai-voice-analysis-integration
- main
 def enhance_audio(input_file, output_path, low_freq_enhance, distance_field, analyze=False):
-    """Enhance ``input_file`` and write the result to ``output_path``.
+    """Enhance ``input_file`` and write the result to ``output_path``."""
 
-    ``output_path`` can be either a filename or a directory. If a directory is
-    provided, the enhanced file will be saved using the input filename with an
-    ``_enhanced.wav`` suffix.
-    """
-
-    input_file = input_file.strip('"')
-    output_path = output_path.strip('"')
-
-n7paiv-codex/analyze-script-for-ai-voice-analysis-integration
-
-
-def enhance_audio(input_file, output_file, low_freq_enhance, distance_field, analyze=False):
- main
     logging.info(f"Processing {input_file} for {distance_field} field enhancement")
 
     # Determine final output file name
@@ -209,7 +190,9 @@ def enhance_audio(input_file, output_file, low_freq_enhance, distance_field, ana
             seg_writer = csv.writer(seg_file)
             if not os.path.exists("voice_segments.csv") or os.stat("voice_segments.csv").st_size == 0:
                 seg_writer.writerow(["file", "start", "end"])
-            for start, end in voice_segments:
+            for start, end in tqdm(
+                voice_segments, desc="Logging", unit="segment"
+            ):
                 seg_writer.writerow([input_file, start, end])
         analyze_voice_features(audio, voice_segments, input_file)
 

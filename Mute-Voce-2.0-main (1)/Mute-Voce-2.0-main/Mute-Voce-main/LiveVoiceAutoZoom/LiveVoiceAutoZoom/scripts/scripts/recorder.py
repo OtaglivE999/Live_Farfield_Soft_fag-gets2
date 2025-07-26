@@ -3,12 +3,17 @@ import sounddevice as sd
 import soundfile as sf
 import numpy as np
 
+xhj3a3-codex/update-livevoiceautozoom-for-audio-enhancement
+SAMPLE_RATE = 48000
+CHANNELS = 1
+
 
 SAMPLE_RATE = 48000
 
 SAMPLE_RATE = 48000
 
 CHANNELS = 2
+ndxhpk-codex/update-audio-script-for-voice-enhancement
 BIT_DEPTH = 'PCM_32'
 
 def find_zoom_input():

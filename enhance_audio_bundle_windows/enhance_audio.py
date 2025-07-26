@@ -2,6 +2,7 @@ import numpy as np
 from scipy.io import wavfile
 from scipy.signal import butter, sosfilt
 import moviepy.editor as mp
+from tqdm import tqdm
 
 # Load video and extract audio
 video = mp.VideoFileClip("1750865130332.MP4")
@@ -19,8 +20,12 @@ sos = butter(10, [300, 3400], btype='bandpass', fs=rate, output='sos')
 chunk_size = rate * 1
 chunks = []
 
-for i in range(0, len(data), chunk_size):
-    chunk = data[i:i+chunk_size]
+for i in tqdm(
+    range(0, len(data), chunk_size),
+    desc="Processing",
+    unit="frame",
+):
+    chunk = data[i:i + chunk_size]
     filtered = sosfilt(sos, chunk)
     emphasized = np.append(filtered[0], filtered[1:] - 0.97 * filtered[:-1])
     emphasized /= np.max(np.abs(emphasized))

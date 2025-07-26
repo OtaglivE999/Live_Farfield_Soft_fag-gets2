@@ -39,8 +39,13 @@ RECORD_SECONDS = 74 * 60  # 4440 seconds
 # Record using 48 kHz and 32-bit depth for wide dynamic range (~-145 dB)
 SAMPLE_RATE = 48000
 
+
+# Record using 48 kHz and 32-bit depth for wide dynamic range (~-145 dB)
+SAMPLE_RATE = 48000
+
 # Use a high sample rate and 32‑bit depth to capture very low level audio
 SAMPLE_RATE = 192000
+
 
 BIT_DEPTH = "PCM_32"
 CHANNELS = 1

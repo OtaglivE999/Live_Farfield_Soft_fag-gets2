@@ -7,6 +7,7 @@ import soundfile as sf
 import numpy as np
 import scipy.signal as signal
 import webrtcvad
+from tqdm import tqdm
 
 
 def bandpass_filter(data, sr, low=300, high=3400):
@@ -24,7 +25,9 @@ def detect_voice_segments(y, sr, aggressiveness=3):
     int16 = (resampled / max_abs * 32767).astype(np.int16)
     frame_length = int(16000 * 0.03)
     segments, start = [], None
-    for i in range(0, len(int16), frame_length):
+    for i in tqdm(
+        range(0, len(int16), frame_length), desc="VAD", unit="frame"
+    ):
         frame = int16[i : i + frame_length]
         if len(frame) < frame_length:
             break
@@ -79,7 +82,7 @@ try:
 
     # Mid-range boost for detected voice segments
     y_proc = np.array(y, dtype=np.float32)
-    for start, end in segments:
+    for start, end in tqdm(segments, desc="Segments", unit="segment"):
         s = int(start * sr)
         e = int(end * sr)
         seg = y_proc[s:e]
@@ -93,7 +96,9 @@ try:
     hop_length = 512
     max_amp = np.max(np.abs(y_proc)) + 1e-9
     y_enhanced = np.copy(y_proc)
-    for start in range(0, len(y_proc), hop_length):
+    for start in tqdm(
+        range(0, len(y_proc), hop_length), desc="Frames", unit="frame"
+    ):
         frame = y_proc[start : start + frame_length]
         rms = np.sqrt(np.mean(frame**2))
         rms_db = 20 * np.log10(rms / max_amp)
@@ -128,3 +133,4 @@ try:
     print(f"✅ Transcript saved: transcript_{base_name}.txt")
 except Exception as e:
     print(f"ℹ️ Whisper transcription skipped or failed: {e}")
+
