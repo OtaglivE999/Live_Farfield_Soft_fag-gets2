@@ -7,7 +7,7 @@ import time
 import sounddevice as sd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from recorder import record_audio, save_audio, find_zoom_input
+from recorder import record_audio, save_audio, find_zoom_input, SAMPLE_RATE
 from vad_enhancer import detect_voiced, enhance_audio
 from speaker_recognition import extract_embedding, load_known_speakers, recognize_speaker
 
@@ -61,14 +61,14 @@ class VoiceRecorderGUI:
             self.canvas.draw()
 
         with sd.InputStream(device=self.device_index, channels=1,
-                            samplerate=44100, dtype='float32', callback=callback):
+                            samplerate=SAMPLE_RATE, dtype='int32', callback=callback):
             while self.recording:
                 time.sleep(0.1)
 
-        audio_np = np.array(buffer, dtype=np.float32)
+        audio_np = np.array(buffer, dtype=np.int32)
         save_audio("scripts/temp_raw.wav", audio_np)
 
-        voiced = detect_voiced(audio_np)
+        voiced = detect_voiced(audio_np, sample_rate=SAMPLE_RATE)
         enhanced = enhance_audio(voiced)
         save_audio("scripts/temp_enhanced.wav", enhanced)
 
