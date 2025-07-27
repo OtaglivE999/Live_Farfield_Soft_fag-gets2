@@ -1,0 +1,22 @@
+name: base
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    - numpy
+    - pydub
+    - scipy
+    - webrtcvad
+    - librosa
+    - matplotlib
+    - tqdm
+    - sounddevice
+    - soundfile
+    - moviepy
+    - openai-whisper
+    - faster-whisper
+    - ffmpeg-python
+    - pandas
