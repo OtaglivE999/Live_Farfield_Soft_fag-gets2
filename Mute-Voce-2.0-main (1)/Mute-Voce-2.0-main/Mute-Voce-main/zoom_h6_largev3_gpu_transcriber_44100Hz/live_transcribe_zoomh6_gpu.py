@@ -12,7 +12,7 @@ CHANNELS = 1
 CHUNK_DURATION = 5
 DEVICE_NAME_FILTER = "zoom"
 MODEL_SIZE = "large-v3"
-COMPUTE_TYPE = "float16"
+COMPUTE_TYPE = "float32"
 DEVICE_TYPE = "cuda"
 
 # ------------------ INITIALIZATION ------------------

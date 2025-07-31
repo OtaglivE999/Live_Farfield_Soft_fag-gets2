@@ -22,7 +22,7 @@ python live_transcribe_zoomh6_gpu.py
 ```
 
 The configuration at the top of the script sets
-`COMPUTE_TYPE="float16"` and `DEVICE_TYPE="cuda"` to leverage the GPU.
+`COMPUTE_TYPE="float32"` and `DEVICE_TYPE="cuda"` to leverage the GPU.
 If you encounter an error such as:
 ```
 RuntimeError: CUDA failed with error CUDA driver version is insufficient for CUDA runtime version
