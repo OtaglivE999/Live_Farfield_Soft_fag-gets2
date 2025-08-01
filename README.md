@@ -13,6 +13,17 @@ pip install -r requirements.txt
 This list includes libraries used across the various enhancement and recording
 utilities such as `librosa`, `sounddevice` and optional `whisper` models.
 
+### Conda
+
+If you prefer managing dependencies with Conda, an `environment.yml` file is
+provided. Create or update the environment with:
+
+```bash
+conda env update -f environment.yml
+```
+
+Our CI installs dependencies with `pip`, so Conda is optional.
+
 ## Usage
 
 Each subfolder contains standalone scripts. See the README files in those
