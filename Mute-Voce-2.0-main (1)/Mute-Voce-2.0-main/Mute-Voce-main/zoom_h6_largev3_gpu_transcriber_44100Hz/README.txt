@@ -35,6 +35,7 @@ DEVICE_TYPE = "cpu"
 ```
 Rerun the command and transcription should start using the CPU.
 
+
 If model loading fails with an error mentioning `cublas64_12.dll`, your
 system lacks the required CUDA runtime. Install a compatible CUDA toolkit
 for your GPU or edit the script to set `DEVICE_TYPE = "cpu"`.
@@ -48,3 +49,4 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 ```
 This allows the application to continue when multiple OpenMP runtimes are
 loaded on Windows.
+
