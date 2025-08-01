@@ -1,3 +1,4 @@
+import os
 import sounddevice as sd
 import numpy as np
 import queue
@@ -5,6 +6,9 @@ import threading
 import time
 import traceback
 from faster_whisper import WhisperModel
+
+# Allow execution when multiple OpenMP runtimes are present on Windows.
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 # ------------------ CONFIGURATION ------------------
 SAMPLERATE = 44100
@@ -103,10 +107,15 @@ if __name__ == "__main__":
         model = WhisperModel(
             MODEL_SIZE, device=DEVICE_TYPE, compute_type=COMPUTE_TYPE
         )
-    except Exception:
+    except Exception as e:
         print(
             f"[FATAL] Whisper model failed to load:\n{traceback.format_exc()}"
         )
+        if DEVICE_TYPE == "cuda" and "cublas" in str(e).lower():
+            print(
+                "[HINT] CUDA libraries were not found. Install the CUDA toolkit "
+                "or change DEVICE_TYPE to 'cpu' in this script."
+            )
         exit(1)
 
     try:
