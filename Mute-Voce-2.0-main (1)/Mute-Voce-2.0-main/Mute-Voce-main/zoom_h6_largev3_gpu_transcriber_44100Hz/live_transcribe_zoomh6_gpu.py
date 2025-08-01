@@ -1,3 +1,4 @@
+import os
 import sounddevice as sd
 import numpy as np
 import queue
@@ -5,6 +6,9 @@ import threading
 import time
 import traceback
 from faster_whisper import WhisperModel
+
+# Allow execution when multiple OpenMP runtimes are present on Windows.
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 # ------------------ CONFIGURATION ------------------
 SAMPLERATE = 44100

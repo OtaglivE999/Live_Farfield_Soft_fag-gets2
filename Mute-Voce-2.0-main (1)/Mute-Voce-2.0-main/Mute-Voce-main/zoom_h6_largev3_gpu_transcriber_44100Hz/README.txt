@@ -34,3 +34,13 @@ COMPUTE_TYPE = "int8"   # or "float32"
 DEVICE_TYPE = "cpu"
 ```
 Rerun the command and transcription should start using the CPU.
+
+If you encounter an `OMP: Error #15` about `libiomp5md.dll`, add the
+following environment variable before running the script or set it at the
+top of the Python file:
+
+```python
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+```
+This allows the application to continue when multiple OpenMP runtimes are
+loaded on Windows.
