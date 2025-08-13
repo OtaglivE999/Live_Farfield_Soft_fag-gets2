@@ -161,7 +161,7 @@ def main():
     files = [
         f
         for f in os.listdir(input_dir)
-        if f.lower().split(".")[-1] in ["wav", "mp3", "mp4"]
+        if f.lower().split(".")[-1] in ["wav", "mp3", "mp4", "m4a"]
     ]
     for file in tqdm(files, desc="Files", unit="file"):
         ext = file.lower().split(".")[-1]
