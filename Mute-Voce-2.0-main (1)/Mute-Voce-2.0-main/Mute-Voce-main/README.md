@@ -4,7 +4,9 @@ Analyze audio for soft voices—far-field or similar—enhance the signal, perfo
 ## LFN Batch File Analyzer
 
 The script `LFN_Docker_Toolkit_Extended/LFN_Docker_Toolkit_Extended/lfn_batch_file_analyzer.py`
-analyzes audio files for low‑frequency noise (LFN) and ultrasonic peaks.
+analyzes audio files for low‑frequency noise (LFN) and ultrasonic peaks. It
+accepts **WAV**, **MP3**, **MP4**, and **M4A** inputs, converting non‑WAV formats
+to WAV before processing.
 
 ```
 python lfn_batch_file_analyzer.py <directory> [--block-duration SECONDS]

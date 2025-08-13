@@ -2,7 +2,7 @@
 SETLOCAL ENABLEEXTENSIONS
 
 :: Prompt for path to folder containing audio files
-set /P "AUDIO_DIR=Enter full path to folder containing audio files (mp3, mp4, wav): "
+set /P "AUDIO_DIR=Enter full path to folder containing audio files (mp3, mp4, m4a, wav): "
 
 :: Check if folder exists
 IF NOT EXIST "%AUDIO_DIR%" (
