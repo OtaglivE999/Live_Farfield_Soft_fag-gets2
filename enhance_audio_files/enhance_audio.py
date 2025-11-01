@@ -21,29 +21,48 @@ logging.basicConfig(
 )
 
 
+def normalize_audio(samples):
+    """Normalize audio samples to the range [-1, 1].
+    
+    Parameters
+    ----------
+    samples : numpy.ndarray
+        Audio samples to normalize.
+    
+    Returns
+    -------
+    numpy.ndarray
+        Normalized audio samples.
+    """
+    max_val = np.max(np.abs(samples))
+    if max_val > 0:
+        return samples / max_val
+    return samples
+
+
 # Define the frequency filters for different fields
 def apply_low_pass_filter(audio_data, fs, cutoff):
     nyquist = 0.5 * fs
     normal_cutoff = cutoff / nyquist
-    b, a = signal.butter(5, normal_cutoff, btype="low", analog=False)
-    return signal.lfilter(b, a, audio_data)
+    sos = signal.butter(5, normal_cutoff, btype="low", analog=False, output='sos')
+    return signal.sosfilt(sos, audio_data)
 
 
 def apply_band_pass_filter(audio_data, fs, low_cutoff, high_cutoff):
     nyquist = 0.5 * fs
     low_normal_cutoff = low_cutoff / nyquist
     high_normal_cutoff = high_cutoff / nyquist
-    b, a = signal.butter(
-        5, [low_normal_cutoff, high_normal_cutoff], btype="band", analog=False
+    sos = signal.butter(
+        5, [low_normal_cutoff, high_normal_cutoff], btype="band", analog=False, output='sos'
     )
-    return signal.lfilter(b, a, audio_data)
+    return signal.sosfilt(sos, audio_data)
 
 
 def apply_high_pass_filter(audio_data, fs, cutoff):
     nyquist = 0.5 * fs
     normal_cutoff = cutoff / nyquist
-    b, a = signal.butter(5, normal_cutoff, btype="high", analog=False)
-    return signal.lfilter(b, a, audio_data)
+    sos = signal.butter(5, normal_cutoff, btype="high", analog=False, output='sos')
+    return signal.sosfilt(sos, audio_data)
 
 
 def detect_voice_segments(
@@ -117,65 +136,75 @@ def analyze_voice_features(audio_segment, voice_segments, input_file):
         "spectrogram",
     ]
     file_exists = os.path.isfile("voice_analysis.csv")
+    
+    # Cache repeated computations
+    fmt = os.path.splitext(input_file)[1].lstrip(".").lower()
+    base_name = os.path.basename(input_file)
+    
+    # Batch write results for better I/O performance
+    results = []
+    
+    for idx, (start, end) in enumerate(
+        tqdm(voice_segments, desc="Segments", unit="segment")
+    ):
+        seg = audio_segment[start * 1000:end * 1000]
+        samples = np.array(seg.get_array_of_samples()).astype(np.float32)
+        if seg.channels > 1:
+            samples = samples.reshape(-1, seg.channels).mean(axis=1)
+        
+        # Normalize audio samples
+        samples = normalize_audio(samples)
+        
+        sr = seg.frame_rate
+        if len(samples) == 0:
+            continue
+
+        f0 = librosa.yin(samples, fmin=50, fmax=500, sr=sr)
+        f0 = f0[np.isfinite(f0)]
+        f0_median = float(np.median(f0)) if f0.size else 0.0
+        gender = "male" if f0_median < 165 else "female"
+        age_range = "child/young" if f0_median > 220 else "adult"
+
+        centroid = librosa.feature.spectral_centroid(y=samples, sr=sr)
+        centroid_mean = float(np.mean(centroid)) if centroid.size else 0.0
+        voice_color = "dark" if centroid_mean < 2000 else "bright"
+
+        possible_height = "tall" if f0_median < 120 else "average"
+        timestamp = datetime.now().isoformat(timespec="seconds")
+
+        S = librosa.amplitude_to_db(
+            np.abs(librosa.stft(samples)), ref=np.max
+        )
+        spec_path = os.path.join(
+            "spectrograms", f"{base_name}_{idx}.png"
+        )
+        plt.figure(figsize=(6, 3))
+        librosa.display.specshow(S, sr=sr, x_axis="time", y_axis="hz")
+        plt.colorbar(format="%+2.0f dB")
+        plt.title("Spectrogram")
+        plt.tight_layout()
+        plt.savefig(spec_path)
+        plt.close()
+
+        results.append([
+            input_file,
+            start,
+            end,
+            gender,
+            age_range,
+            voice_color,
+            fmt,
+            possible_height,
+            timestamp,
+            spec_path,
+        ])
+    
+    # Batch write to CSV for better I/O performance
     with open("voice_analysis.csv", mode="a", newline="") as f:
         writer = csv.writer(f)
         if not file_exists:
             writer.writerow(header)
-
-        for idx, (start, end) in enumerate(
-            tqdm(voice_segments, desc="Segments", unit="segment")
-        ):
-            seg = audio_segment[start * 1000:end * 1000]
-            samples = np.array(seg.get_array_of_samples()).astype(np.float32)
-            if seg.channels > 1:
-                samples = samples.reshape(-1, seg.channels).mean(axis=1)
-            samples /= np.max(np.abs(samples)) or 1
-            sr = seg.frame_rate
-            if len(samples) == 0:
-                continue
-
-            f0 = librosa.yin(samples, fmin=50, fmax=500, sr=sr)
-            f0 = f0[np.isfinite(f0)]
-            f0_median = float(np.median(f0)) if f0.size else 0.0
-            gender = "male" if f0_median < 165 else "female"
-            age_range = "child/young" if f0_median > 220 else "adult"
-
-            centroid = librosa.feature.spectral_centroid(y=samples, sr=sr)
-            centroid_mean = float(np.mean(centroid)) if centroid.size else 0.0
-            voice_color = "dark" if centroid_mean < 2000 else "bright"
-
-            fmt = os.path.splitext(input_file)[1].lstrip(".").lower()
-            possible_height = "tall" if f0_median < 120 else "average"
-            timestamp = datetime.now().isoformat(timespec="seconds")
-
-            S = librosa.amplitude_to_db(
-                np.abs(librosa.stft(samples)), ref=np.max
-            )
-            spec_path = os.path.join(
-                "spectrograms", f"{os.path.basename(input_file)}_{idx}.png"
-            )
-            plt.figure(figsize=(6, 3))
-            librosa.display.specshow(S, sr=sr, x_axis="time", y_axis="hz")
-            plt.colorbar(format="%+2.0f dB")
-            plt.title("Spectrogram")
-            plt.tight_layout()
-            plt.savefig(spec_path)
-            plt.close()
-
-            writer.writerow(
-                [
-                    input_file,
-                    start,
-                    end,
-                    gender,
-                    age_range,
-                    voice_color,
-                    fmt,
-                    possible_height,
-                    timestamp,
-                    spec_path,
-                ]
-            )
+        writer.writerows(results)
 
 
 def enhance_audio(
@@ -202,17 +231,14 @@ def enhance_audio(
     voice_segments = detect_voice_segments(audio)
     if analyze:
         logging.info("Voice segments detected: %s", voice_segments)
+        # Batch write voice segments
+        file_exists = os.path.exists("voice_segments.csv") and os.stat("voice_segments.csv").st_size > 0
         with open("voice_segments.csv", mode="a", newline="") as seg_file:
             seg_writer = csv.writer(seg_file)
-            if (
-                not os.path.exists("voice_segments.csv")
-                or os.stat("voice_segments.csv").st_size == 0
-            ):
+            if not file_exists:
                 seg_writer.writerow(["file", "start", "end"])
-            for start, end in tqdm(
-                voice_segments, desc="Logging", unit="segment"
-            ):
-                seg_writer.writerow([input_file, start, end])
+            # Batch write all segments at once
+            seg_writer.writerows([[input_file, start, end] for start, end in voice_segments])
         analyze_voice_features(audio, voice_segments, input_file)
 
     audio_data = np.array(audio.get_array_of_samples())
