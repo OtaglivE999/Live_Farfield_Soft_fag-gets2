@@ -21,6 +21,25 @@ logging.basicConfig(
 )
 
 
+def normalize_audio(samples):
+    """Normalize audio samples to the range [-1, 1].
+    
+    Parameters
+    ----------
+    samples : numpy.ndarray
+        Audio samples to normalize.
+    
+    Returns
+    -------
+    numpy.ndarray
+        Normalized audio samples.
+    """
+    max_val = np.max(np.abs(samples))
+    if max_val > 0:
+        return samples / max_val
+    return samples
+
+
 # Define the frequency filters for different fields
 def apply_low_pass_filter(audio_data, fs, cutoff):
     nyquist = 0.5 * fs
@@ -133,10 +152,8 @@ def analyze_voice_features(audio_segment, voice_segments, input_file):
         if seg.channels > 1:
             samples = samples.reshape(-1, seg.channels).mean(axis=1)
         
-        # Optimize normalization - avoid division by zero more efficiently
-        max_val = np.max(np.abs(samples))
-        if max_val > 0:
-            samples /= max_val
+        # Normalize audio samples
+        samples = normalize_audio(samples)
         
         sr = seg.frame_rate
         if len(samples) == 0:

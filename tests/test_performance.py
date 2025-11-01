@@ -1,5 +1,7 @@
+import csv
 import os
 import sys
+import tempfile
 import time
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -67,9 +69,6 @@ def test_filter_numerical_stability():
 def test_batch_operations_efficiency():
     """Test that batch operations are more efficient than individual operations."""
     # Simulate writing multiple rows individually with larger dataset
-    import tempfile
-    import csv
-    
     rows = [[f"file_{i}", i, i+1, f"data_{i}"] for i in range(1000)]
     
     # Individual writes

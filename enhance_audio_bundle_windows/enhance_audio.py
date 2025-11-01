@@ -4,6 +4,15 @@ from scipy.signal import butter, sosfilt
 import moviepy.editor as mp
 from tqdm import tqdm
 
+
+def normalize_audio(samples):
+    """Normalize audio samples to the range [-1, 1]."""
+    max_val = np.max(np.abs(samples))
+    if max_val > 0:
+        return samples / max_val
+    return samples
+
+
 # Load video and extract audio
 video = mp.VideoFileClip("1750865130332.MP4")
 video.audio.write_audiofile("extracted_audio.wav")
@@ -12,9 +21,7 @@ video.audio.write_audiofile("extracted_audio.wav")
 rate, data = wavfile.read("extracted_audio.wav")
 data = data.astype(np.float32)
 # Normalize once, not per chunk
-max_val = np.max(np.abs(data))
-if max_val > 0:
-    data /= max_val
+data = normalize_audio(data)
 
 # Bandpass filter: 300–3400 Hz (use SOS format for numerical stability)
 sos = butter(10, [300, 3400], btype='bandpass', fs=rate, output='sos')
@@ -34,9 +41,7 @@ for i in tqdm(
     # Pre-emphasis filter
     emphasized = np.append(filtered[0], filtered[1:] - 0.97 * filtered[:-1])
     # Normalize chunk
-    chunk_max = np.max(np.abs(emphasized))
-    if chunk_max > 0:
-        emphasized /= chunk_max
+    emphasized = normalize_audio(emphasized)
     chunks.append((emphasized * 32767).astype(np.int16))
 
 # Concatenate and save
